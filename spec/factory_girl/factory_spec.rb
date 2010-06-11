@@ -42,113 +42,16 @@ describe Factory do
     @factory.default_strategy.should == :create
   end
 
-  # proxy
-  it "should return static attribute when asked for a type" do
-    result = @factory.type
-    result.should be_kind_of(Array)
-    result.first.should be_kind_of(Factory::Attribute::Static)
-    result.first.name.should == :type
-  end
-
-  # proxy
-  it "should define type as an attribute" do
-    @factory.type { "it's a type" }
-    attributes = @factory.attributes
-    attributes.should be_kind_of(Array)
-    attributes.size.should == 1
-    attributes.first.name.should == :type
-  end
-
-  # proxy
-  it "should return static attribute when asked for the id" do
-    result = @factory.id
-    result.should be_kind_of(Array)
-    result.first.should be_kind_of(Factory::Attribute::Static)
-    result.first.name.should == :id
-  end
-
-  # proxy
-  it "should define id as an attribute" do
-    @factory.id { "it's an id" }
-    attributes = @factory.attributes
-    attributes.should be_kind_of(Array)
-    attributes.size.should == 1
-    attributes.first.name.should == :id
-  end
-
   it "should not allow the same attribute to be added twice" do
     lambda {
       2.times { @factory.define_attribute Factory::Attribute::Static.new(:name, 'value') }
     }.should raise_error(Factory::AttributeDefinitionError)
   end
 
-  # proxy
-  it "should add a static attribute when an attribute is defined with a value" do
-    attribute = 'attribute'
-    stub(attribute).name { :name }
-    mock(Factory::Attribute::Static).new(:name, 'value') { attribute }
-    mock(@factory).define_attribute(attribute)
-    @factory.add_attribute(:name, 'value')
-  end
-
-  # proxy
-  it "should add a dynamic attribute when an attribute is defined with a block" do
-    attribute = 'attribute'
-    stub(attribute).name { :name }
-    block     = lambda {}
-    mock(Factory::Attribute::Dynamic).new(:name, block) { attribute }
-    mock(@factory).define_attribute(attribute)
-    @factory.add_attribute(:name, &block)
-  end
-
-  # proxy
-  it "should raise for an attribute with a value and a block" do
-    lambda {
-      @factory.add_attribute(:name, 'value') {}
-    }.should raise_error(Factory::AttributeDefinitionError)
-  end
-
-  # proxy
-  describe "adding an attribute using a in-line sequence" do
-    it "should create the sequence" do
-      mock(Factory::Sequence).new
-      @factory.sequence(:name) {}
-    end
-
-    it "should add a dynamic attribute" do
-      attribute = 'attribute'
-      stub(attribute).name { :name }
-      mock(Factory::Attribute::Dynamic).new(:name, is_a(Proc)) { attribute }
-      @factory.sequence(:name) {}
-      @factory.attributes.should include(attribute)
-    end
-  end
-
   it "should add a callback attribute when defining a callback" do
     mock(Factory::Attribute::Callback).new(:after_create, is_a(Proc)) { 'after_create callback' }
     @factory.add_callback(:after_create) {}
     @factory.attributes.should include('after_create callback')
-  end
-
-  # proxy
-  it "should add a callback attribute when the after_build attribute is defined" do
-    mock(Factory::Attribute::Callback).new(:after_build, is_a(Proc)) { 'after_build callback' }
-    @factory.after_build {}
-    @factory.attributes.should include('after_build callback')
-  end
-
-  # proxy
-  it "should add a callback attribute when the after_create attribute is defined" do
-    mock(Factory::Attribute::Callback).new(:after_create, is_a(Proc)) { 'after_create callback' }
-    @factory.after_create {}
-    @factory.attributes.should include('after_create callback')
-  end
-
-  # proxy
-  it "should add a callback attribute when the after_stub attribute is defined" do
-    mock(Factory::Attribute::Callback).new(:after_stub, is_a(Proc)) { 'after_stub callback' }
-    @factory.after_stub {}
-    @factory.attributes.should include('after_stub callback')
   end
 
   it "should raise an InvalidCallbackNameError when defining a callback with an invalid name" do
@@ -169,7 +72,7 @@ describe Factory do
       stub(Factory::Attribute::Static).new { @attribute }
       stub(Factory::Proxy::Build).new { @proxy }
 
-      @factory.add_attribute(:name, 'value')
+      @factory.define_attribute(@attribute)
     end
 
     it "should create the right proxy using the build class when running" do
@@ -188,55 +91,14 @@ describe Factory do
     end
   end
 
-  # proxy
-  it "should add an association without a factory name or overrides" do
-    factory = Factory.new(:post)
-    name    = :user
-    attr    = 'attribute'
-    stub(attr).name { name }
-    mock(Factory::Attribute::Association).new(name, name, {}) { attr }
-    factory.association(name)
-    factory.attributes.should include(attr)
-  end
-
   it "should return associations" do
     factory = Factory.new(:post)
-    factory.association(:author)
-    factory.association(:editor)
+    factory.define_attribute(Factory::Attribute::Association.new(:author, :author, {}))
+    factory.define_attribute(Factory::Attribute::Association.new(:editor, :editor, {}))
     factory.associations.each do |association|
       association.should be_a(Factory::Attribute::Association)
     end
     factory.associations.size.should == 2
-  end
-
-  # proxy
-  it "should add an association with overrides" do
-    factory   = Factory.new(:post)
-    name      = :user
-    attr      = 'attribute'
-    overrides = { :first_name => 'Ben' }
-    stub(attr).name { name }
-    mock(Factory::Attribute::Association).new(name, name, overrides) { attr }
-    factory.association(name, overrides)
-    factory.attributes.should include(attr)
-  end
-
-  it "should add an association with a factory name" do
-    factory = Factory.new(:post)
-    attr = 'attribute'
-    stub(attr).name { :author }
-    mock(Factory::Attribute::Association).new(:author, :user, {}) { attr }
-    factory.association(:author, :factory => :user)
-    factory.attributes.should include(attr)
-  end
-
-  it "should add an association with a factory name and overrides" do
-    factory = Factory.new(:post)
-    attr = 'attribute'
-    stub(attr).name { :author }
-    mock(Factory::Attribute::Association).new(:author, :user, :first_name => 'Ben') { attr }
-    factory.association(:author, :factory => :user, :first_name => 'Ben')
-    factory.attributes.should include(attr)
   end
 
   it "should raise for a self referencing association" do
@@ -244,33 +106,6 @@ describe Factory do
     lambda {
       factory.define_attribute(Factory::Attribute::Association.new(:parent, :post, {}))
     }.should raise_error(Factory::AssociationDefinitionError)
-  end
-
-  # proxy
-  it "should add an attribute using the method name when passed an undefined method" do
-    attribute = 'attribute'
-    stub(attribute).name { :name }
-    block = lambda {}
-    mock(Factory::Attribute::Static).new(:name, 'value') { attribute }
-    @factory.send(:name, 'value')
-    @factory.attributes.should include(attribute)
-  end
-
-  # proxy
-  it "should allow human_name as a static attribute name" do
-    attribute = 'attribute'
-    stub(attribute).name { :name }
-    mock(Factory::Attribute::Static).new(:human_name, 'value') { attribute}
-    @factory.human_name 'value'
-  end
-
-  # proxy
-  it "should allow human_name as a dynamic attribute name" do
-    attribute = 'attribute'
-    stub(attribute).name { :name }
-    block     = lambda {}
-    mock(Factory::Attribute::Dynamic).new(:human_name, block) { attribute }
-    @factory.human_name(&block)
   end
 
   describe "when overriding generated attributes with a hash" do
@@ -518,89 +353,6 @@ describe Factory do
     end
   end
 
-  describe "after defining a factory" do
-    before do
-      @name    = :user
-      @factory = "factory"
-
-      Factory.factories[@name] = @factory
-    end
-
-    # syntax
-    it "should use Proxy::AttributesFor for Factory.attributes_for" do
-      mock(@factory).run(Factory::Proxy::AttributesFor, :attr => 'value') { 'result' }
-      Factory.attributes_for(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    it "should use Proxy::Build for Factory.build" do
-      mock(@factory).run(Factory::Proxy::Build, :attr => 'value') { 'result' }
-      Factory.build(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    it "should use Proxy::Create for Factory.create" do
-      mock(@factory).run(Factory::Proxy::Create, :attr => 'value') { 'result' }
-      Factory.create(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    it "should use Proxy::Stub for Factory.stub" do
-      mock(@factory).run(Factory::Proxy::Stub, :attr => 'value') { 'result' }
-      Factory.stub(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    it "should use default strategy option as Factory.default_strategy" do
-      stub(@factory).default_strategy { :create }
-      mock(@factory).run(Factory::Proxy::Create, :attr => 'value') { 'result' }
-      Factory.default_strategy(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    it "should use the default strategy for the global Factory method" do
-      stub(@factory).default_strategy { :create }
-      mock(@factory).run(Factory::Proxy::Create, :attr => 'value') { 'result' }
-      Factory(@name, :attr => 'value').should == 'result'
-    end
-
-    # syntax
-    [:build, :create, :attributes_for, :stub].each do |method|
-      it "should raise an ArgumentError on #{method} with a nonexistant factory" do
-        lambda { Factory.send(method, :bogus) }.should raise_error(ArgumentError)
-      end
-
-      it "should recognize either 'name' or :name for Factory.#{method}" do
-        stub(@factory).run
-        lambda { Factory.send(method, @name.to_s) }.should_not raise_error
-        lambda { Factory.send(method, @name.to_sym) }.should_not raise_error
-      end
-    end
-  end
-
-  describe 'defining a factory with a default strategy parameter' do
-    # syntax
-    it "should raise an ArgumentError when trying to use a non-existent factory" do
-      lambda {
-        Factory.define(:object, :default_strategy => :nonexistent) {}
-      }.should raise_error(ArgumentError)
-    end
-  end
-end
-
-describe Factory, "given a parent factory" do
-  before do
-    @parent = Factory.new(:object)
-    @parent.define_attribute(Factory::Attribute::Static.new(:name, 'value'))
-    Factory.register_factory(@parent)
-  end
-
-  # syntax
-  it "should raise an ArgumentError when trying to use a non-existent factory as parent" do
-    lambda {
-      Factory.define(:child, :parent => :nonexsitent) {}
-    }.should raise_error(ArgumentError)
-  end
 end
 
 describe "definition loading" do
