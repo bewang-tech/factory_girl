@@ -113,6 +113,70 @@ class Factory
   def self.default_strategy (name, overrides = {})
     self.send(factory_by_name(name).default_strategy, name, overrides)
   end
+
+  # Defines a new sequence that can be used to generate unique values in a specific format.
+  #
+  # Arguments:
+  #   name: (Symbol)
+  #     A unique name for this sequence. This name will be referenced when
+  #     calling next to generate new values from this sequence.
+  #   block: (Proc)
+  #     The code to generate each value in the sequence. This block will be
+  #     called with a unique number each time a value in the sequence is to be
+  #     generated. The block should return the generated value for the
+  #     sequence.
+  #
+  # Example:
+  #
+  #   Factory.sequence(:email) {|n| "somebody_#{n}@example.com" }
+  def self.sequence (name, &block)
+    self.sequences[name] = Sequence.new(&block)
+  end
+
+  # Generates and returns the next value in a sequence.
+  #
+  # Arguments:
+  #   name: (Symbol)
+  #     The name of the sequence that a value should be generated for.
+  #
+  # Returns:
+  #   The next value in the sequence. (Object)
+  def self.next (sequence)
+    unless self.sequences.key?(sequence)
+      raise "No such sequence: #{sequence}"
+    end
+
+    self.sequences[sequence].next
+  end
+
+  # Defines a new alias for attributes.
+  #
+  # Arguments:
+  # * pattern: +Regexp+
+  #   A pattern that will be matched against attributes when looking for
+  #   aliases. Contents captured in the pattern can be used in the alias.
+  # * replace: +String+
+  #   The alias that results from the matched pattern. Captured strings can
+  #   be substituted like with +String#sub+.
+  #
+  # Example:
+  #
+  #   Factory.alias /(.*)_confirmation/, '\1'
+  #
+  # factory_girl starts with aliases for foreign keys, so that a :user
+  # association can be overridden by a :user_id parameter:
+  #
+  #   Factory.define :post do |p|
+  #     p.association :user
+  #   end
+  #
+  #   # The user association will not be built in this example. The user_id
+  #   # will be used instead.
+  #   Factory(:post, :user_id => 1)
+  def self.alias (pattern, replace)
+    self.aliases << [pattern, replace]
+  end
+
 end
 
 # Shortcut for Factory.default_strategy.
