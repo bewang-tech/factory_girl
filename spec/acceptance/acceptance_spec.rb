@@ -96,8 +96,8 @@ describe "integration" do
       @instance.author.should be_kind_of(User)
     end
 
-    it "should save associations" do
-      @instance.author.should_not be_new_record
+    it "should not save associations" do
+      @instance.author.should be_new_record
     end
 
     it "should not assign both an association and its foreign key" do

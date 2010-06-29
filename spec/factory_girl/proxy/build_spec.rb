@@ -8,7 +8,7 @@ describe Factory::Proxy::Build do
 
     stub(@class).new { @instance }
     stub(@instance).attribute { 'value' }
-    stub(Factory).create { @association }
+    stub(Factory).build { @association }
     stub(@instance, :attribute=)
     stub(@instance, :owner=)
 
@@ -24,8 +24,8 @@ describe Factory::Proxy::Build do
       @proxy.associate(:owner, :user, {})
     end
 
-    it "should create the associated instance" do
-      Factory.should have_received.create(:user, {})
+    it "should build the associated instance" do
+      Factory.should have_received.build(:user, {})
     end
 
     it "should set the associated instance" do
@@ -36,9 +36,9 @@ describe Factory::Proxy::Build do
   it "should call Factory.create when building an association" do
     association = 'association'
     attribs     = { :first_name => 'Billy' }
-    stub(Factory).create { association }
+    stub(Factory).build { association }
     @proxy.association(:user, attribs).should == association
-    Factory.should have_received.create(:user, attribs)
+    Factory.should have_received.build(:user, attribs)
   end
 
   it "should return the built instance when asked for the result" do

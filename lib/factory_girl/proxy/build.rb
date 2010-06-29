@@ -14,11 +14,11 @@ class Factory
       end
 
       def associate(name, factory, attributes)
-        set(name, Factory.create(factory, attributes))
+        set(name, Factory.build(factory, attributes))
       end
 
       def association(factory, overrides = {})
-        Factory.create(factory, overrides)
+        Factory.build(factory, overrides)
       end
 
       def result
